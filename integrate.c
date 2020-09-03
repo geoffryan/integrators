@@ -138,6 +138,16 @@ double trap_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
     return I;
 }
 
+double simp_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
+                  double atol, double rtol, void *args, int *Neval,
+                  double *eps, Mesh5 *mout, int verbose)
+{
+    double I = m5_adapt(f, xa, xb, Nmax, simpProcessInterval,
+                        simpSplitInterval, atol, rtol, args,
+                        Neval, eps, mout, verbose);
+    return I;
+}
+
 double gl7_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
                  double atol, double rtol, void *args, int *Neval,
                  double *eps, Mesh *mout, int verbose)
@@ -166,6 +176,7 @@ double gen_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
     double I = i.I;
     double err = i.err;
     int num_intervals = 1;
+    int last_check = 1;
 
     while(n < Nmax)
     {
@@ -178,9 +189,17 @@ double gen_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
         meshInsert(&m, i2);
         num_intervals++;
 
-
-        err += i1.err + i2.err - i.err;
-        I += i1.I + i2.I - i.I;
+        if(num_intervals == 2*last_check)
+        {
+            err = meshTotalError(&m);
+            I = meshTotalIntegral(&m);
+            last_check = num_intervals;
+        }
+        else
+        {
+            err += i1.err + i2.err - i.err;
+            I += i1.I + i2.I - i.I;
+        }
         
         if(verbose)
             printf("Num Intervals: %d - I=%.12lg  err=%.3lg  tol=%.3lg"
@@ -232,6 +251,7 @@ double m3_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
     double I = i.I;
     double err = i.err;
     int num_intervals = 1;
+    int last_check = 1;
 
     while(n < Nmax)
     {
@@ -244,9 +264,17 @@ double m3_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
         mesh3Insert(&m, i2);
         num_intervals++;
 
-
-        err += i1.err + i2.err - i.err;
-        I += i1.I + i2.I - i.I;
+        if(num_intervals == 2*last_check)
+        {
+            err = mesh3TotalError(&m);
+            I = mesh3TotalIntegral(&m);
+            last_check = num_intervals;
+        }
+        else
+        {
+            err += i1.err + i2.err - i.err;
+            I += i1.I + i2.I - i.I;
+        }
         
         if(verbose)
             printf("Num Intervals: %d - I=%.12lg  err=%.3lg  tol=%.3lg"
@@ -289,13 +317,18 @@ double m5_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
 
     Interval5 i = {.a=xa, .b=xb, .I=0, .err=0,
                    .fa=0, .fl=0, .fm=0, .fr=0, .fb=0};
-    int n = processInterval(f, args, &i);
+    i.fa = f(xa, args);
+    i.fm = f(0.5*(xa+xb), args);
+    i.fb = f(xb, args);
+    int n = 3;
+    n += processInterval(f, args, &i);
 
     mesh5Insert(&m, i);
 
     double I = i.I;
     double err = i.err;
     int num_intervals = 1;
+    int last_check = 1;
 
     while(n < Nmax)
     {
@@ -308,9 +341,17 @@ double m5_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
         mesh5Insert(&m, i2);
         num_intervals++;
 
-
-        err += i1.err + i2.err - i.err;
-        I += i1.I + i2.I - i.I;
+        if(num_intervals == 2*last_check)
+        {
+            err = mesh5TotalError(&m);
+            I = mesh5TotalIntegral(&m);
+            last_check = num_intervals;
+        }
+        else
+        {
+            err += i1.err + i2.err - i.err;
+            I += i1.I + i2.I - i.I;
+        }
         
         if(verbose)
             printf("Num Intervals: %d - I=%.12lg  err=%.3lg  tol=%.3lg"
@@ -376,6 +417,51 @@ int trapSplitInterval(double (*f)(double, void *), void *args,
     int n = 0;
     n += trapProcessInterval(f, args, i1);
     n += trapProcessInterval(f, args, i2);
+
+    return n;
+}
+
+int simpProcessInterval(double (*f)(double, void *), void *args, Interval5 *i)
+{
+    double fa = i->fa;
+    double fb = i->fb;
+    double fm = i->fm;
+    double fl = f(0.75*i->a+0.25*i->b, args);
+    double fr = f(0.25*i->a+0.75*i->b, args);
+    i->fl = fl;
+    i->fr = fr;
+
+    double h = 0.25*(i->b - i->a);
+
+    double I0 = 2*h * (fa + 4*fm + fb)/3.0;
+    double I1 = h * (fa + 4*fl + 2*fm + 4*fr + fb)/3.0;
+
+    double err = (I1 - I0) / 15.0;
+    i->err = fabs(err);
+    i->I = I1 + err;
+
+    return 2;
+}
+
+int simpSplitInterval(double (*f)(double, void *), void *args,
+                      Interval5 *i0, Interval5 *i1, Interval5 *i2)
+{
+    double xm = 0.5*(i0->a + i0->b);
+    i1->a = i0->a;
+    i1->b = xm;
+    i2->a = xm;
+    i2->b = i0->b;
+
+    i1->fa = i0->fa;
+    i1->fm = i0->fl;
+    i1->fb = i0->fm;
+    i2->fa = i0->fm;
+    i2->fm = i0->fr;
+    i2->fb = i0->fb;
+
+    int n = 0;
+    n += simpProcessInterval(f, args, i1);
+    n += simpProcessInterval(f, args, i2);
 
     return n;
 }

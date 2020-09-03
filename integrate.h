@@ -18,6 +18,9 @@ double quad(double (*f)(double, void *), double xa, double xb, int N,
 double trap_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
                   double atol, double rtol, void *args, int *Neval,
                   double *eps, struct Mesh3 *mout, int verbose);
+double simp_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
+                  double atol, double rtol, void *args, int *Neval,
+                  double *eps, struct Mesh5 *mout, int verbose);
 double gl7_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
                  double atol, double rtol, void *args, int *Neval,
                  double *eps, struct Mesh *mout, int verbose);
@@ -45,6 +48,9 @@ double m5_adapt(double (*f)(double, void *), double xa, double xb, int Nmax,
 int trapProcessInterval(double (*f)(double, void *), void *args, Interval3 *i);
 int trapSplitInterval(double (*f)(double, void *), void *args,
                         Interval3 *i0, Interval3 *i1, Interval3 *i2);
+int simpProcessInterval(double (*f)(double, void *), void *args, Interval5 *i);
+int simpSplitInterval(double (*f)(double, void *), void *args,
+                      Interval5 *i0, Interval5 *i1, Interval5 *i2);
 int gl7ProcessInterval(double (*f)(double, void *), void *args, Interval *i);
 int gl7SplitInterval(double (*f)(double, void *), void *args,
                         Interval *i0, Interval *i1, Interval *i2);
