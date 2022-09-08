@@ -53,7 +53,7 @@ The arguments are:
 * `Neval`: pointer to integer. if not NULL, set to the number of evaluations performed
 * `eps`: pointer to double. if not NULL, set to the error estimate
 * `verbose`: if non-zero, print internal information during run
-* `errf`: pointer to the error function. Is called after every evaluation of `f`.  If return value is non-zero, integration is immediately halted.
+* `errf`: pointer to the error function. Is called after every evaluation of `f` as `errf(args)`.  If return value is non-zero, integration is immediately halted.
 * `pfa`, `pfb`: pointers to double. If not NULL, used for `f(xa)` and `f(xb)`.
 
 ## Adaptive Routines
