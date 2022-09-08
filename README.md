@@ -28,7 +28,7 @@ The arguments are:
 * `xa`, `xb`: Left and right integration bounds
 * `N`: Number of evaluations.
 * `args`: pointer to the arguments passed to `f`
-* `errf`: pointer to the error function. Is called after every evaluation of `f`.  If return value is non-zero, integration is immediately halted.
+* `errf`: pointer to the error function. Is called after every evaluation of `f` as `errf(args)`.  If return value is non-zero, integration is immediately halted.
 
 ## Romberg Routine
 
@@ -94,5 +94,5 @@ The arguments are:
 * `eps`: pointer to double. if not NULL, set to the error estimate
 * `mout`: a pointer to a mesh or NULL. If not NULL, the entire integration mesh is returned. This is an allocated structure and must be freed with the appropriate method from `interval.h`. Either a `Mesh`, a `Mesh3`, a `Mesh5`, or a `Mesh9`.
 * `verbose`: if non-zero, print internal information during run
-* `errf`: pointer to the error function. Is called after every evaluation of `f`.  If return value is non-zero, integration is immediately halted.
+* `errf`: pointer to the error function. Is called after every evaluation of `f` as `errf(args)`.  If return value is non-zero, integration is immediately halted.
 * `pfa`, `pfb`: pointers to double. If not NULL, used for `f(xa)` and `f(xb)`.
