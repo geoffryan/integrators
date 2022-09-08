@@ -4,6 +4,10 @@
 #include "integrate.h"
 #include "interval.h"
 
+int errf(void *args)
+{
+    return 0;
+}
 
 double f1(double x, void *args)
 {
@@ -23,14 +27,14 @@ double f2(double x, void *args)
 {
     double c = ((double *)args)[0];
 
-    return cos(c*x);
+    return cos(x/c);
 }
 
 double F2(double a, double b, void *args)
 {
     double c = ((double *)args)[0];
 
-    return (sin(c*b) - sin(c*a)) / c;
+    return (sin(b/c) - sin(a/c)) * c;
 }
 
 void dumpConvergence(char name[], int N, int *Neval, double *I, double *err)
@@ -84,7 +88,7 @@ void convergence_trap_fixed(double (*f)(double, void *), void *args,
             n = N2;
 
         Neval[i] = n+1;
-        I[i] = trap(f, a, b, n, args);
+        I[i] = trap(f, a, b, n, args, errf);
         err[i] = fabs((I[i] - exact)/exact);
         printf("%05d: %.12lg %.6e\n", Neval[i], I[i], err[i]);
     }
@@ -114,7 +118,7 @@ void convergence_simp_fixed(double (*f)(double, void *), void *args,
             n--;
 
         Neval[i] = n+1;
-        I[i] = simp(f, a, b, n, args);
+        I[i] = simp(f, a, b, n, args, errf);
         err[i] = fabs((I[i] - exact)/exact);
         printf("%05d: %.12lg %.6e\n", Neval[i], I[i], err[i]);
     }
@@ -141,7 +145,8 @@ void convergence_romb_adapt(double (*f)(double, void *), void *args,
         else if(i == N-1)
             n = N2;
 
-        I[i] = romb(f, a, b, n, 0, 0, args, &(Neval[i]), &(err_approx[i]), 0);
+        I[i] = romb(f, a, b, n, 0, 0, args, &(Neval[i]), &(err_approx[i]), 0,
+                    errf, NULL, NULL);
         err[i] = fabs((I[i] - exact)/exact);
         err_approx[i] = fabs(err_approx[i] / exact);
         printf("%05d: %.12lg %.6e\n", Neval[i], I[i], err[i]);
@@ -170,7 +175,8 @@ void convergence_trap_adapt(double (*f)(double, void *), void *args,
             n = N2;
 
         I[i] = trap_adapt(f, a, b, n, 0, 0, args,
-                          &(Neval[i]),  &(err_approx[i]), NULL, 0);
+                          &(Neval[i]),  &(err_approx[i]), NULL, 0,
+                          errf, NULL, NULL);
         err[i] = fabs((I[i] - exact)/exact);
         err_approx[i] = fabs(err_approx[i] / exact);
         printf("%05d: %.12lg %.6e\n", Neval[i], I[i], err[i]);
@@ -200,7 +206,8 @@ void convergence_simp_adapt(double (*f)(double, void *), void *args,
             n = N2;
 
         I[i] = simp_adapt(f, a, b, n, 0, 0, args,
-                          &(Neval[i]), &(err_approx[i]), NULL, 0);
+                          &(Neval[i]), &(err_approx[i]), NULL, 0,
+                          errf, NULL, NULL);
         err[i] = fabs((I[i] - exact)/exact);
         err_approx[i] = fabs(err_approx[i] / exact);
         printf("%05d: %.12lg %.6e\n", Neval[i], I[i], err[i]);
@@ -209,7 +216,37 @@ void convergence_simp_adapt(double (*f)(double, void *), void *args,
     dumpConvergenceAdapt(name, N, Neval, I, err, err_approx);
 }
 
-void convergence_gl7_adapt(double (*f)(double, void *), void *args,
+void convergence_cadre_adapt(double (*f)(double, void *), void *args,
+                            double a, double b,
+                            double (*F)(double, double, void *),
+                            int N1, int N2,
+                            int N, int *Neval, double *I, double *err,
+                            char name[])
+{
+    double exact = F(a, b, args);
+    double err_approx[N];
+
+    int i;
+    for(i=0; i<N; i++)
+    {
+        int n = (int) (N1 * pow(((double)N2)/N1, ((double) i)/(N-1)));
+        if(i==0)
+            n = N1;
+        else if(i == N-1)
+            n = N2;
+
+        I[i] = cadre_adapt(f, a, b, n, 0, 0, args,
+                          &(Neval[i]),  &(err_approx[i]), NULL, 0,
+                          errf, NULL, NULL);
+        err[i] = fabs((I[i] - exact)/exact);
+        err_approx[i] = fabs(err_approx[i] / exact);
+        printf("%05d: %.12lg %.6e\n", Neval[i], I[i], err[i]);
+    }
+
+    dumpConvergenceAdapt(name, N, Neval, I, err, err_approx);
+}
+
+void convergence_gk49_adapt(double (*f)(double, void *), void *args,
                             double a, double b,
                             double (*F)(double, double, void *),
                             int N1, int N2,
@@ -229,8 +266,68 @@ void convergence_gl7_adapt(double (*f)(double, void *), void *args,
         else if(i == N-1)
             n = N2;
 
-        I[i] = gl7_adapt(f, a, b, n, 0, 0, args, &(Neval[i]), &(err_approx[i]),
-                         NULL, 0);
+        I[i] = gk49_adapt(f, a, b, n, 0, 0, args, &(Neval[i]), &(err_approx[i]),
+                         NULL, 0, errf);
+        err[i] = fabs((I[i] - exact)/exact);
+        err_approx[i] = fabs(err_approx[i] / exact);
+        printf("%05d: %.12lg %.6e\n", Neval[i], I[i], err[i]);
+    }
+
+    dumpConvergenceAdapt(name, N, Neval, I, err, err_approx);
+}
+
+void convergence_gk715_adapt(double (*f)(double, void *), void *args,
+                            double a, double b,
+                            double (*F)(double, double, void *),
+                            int N1, int N2,
+                            int N, int *Neval, double *I, double *err,
+                            char name[])
+{
+    double exact = F(a, b, args);
+
+    double err_approx[N];
+
+    int i;
+    for(i=0; i<N; i++)
+    {
+        int n = (int) (N1 * pow(((double)N2)/N1, ((double) i)/(N-1)));
+        if(i==0)
+            n = N1;
+        else if(i == N-1)
+            n = N2;
+
+        I[i] = gk715_adapt(f, a, b, n, 0, 0, args, &(Neval[i]),
+                            &(err_approx[i]), NULL, 0, errf);
+        err[i] = fabs((I[i] - exact)/exact);
+        err_approx[i] = fabs(err_approx[i] / exact);
+        printf("%05d: %.12lg %.6e\n", Neval[i], I[i], err[i]);
+    }
+
+    dumpConvergenceAdapt(name, N, Neval, I, err, err_approx);
+}
+
+void convergence_gk1021_adapt(double (*f)(double, void *), void *args,
+                            double a, double b,
+                            double (*F)(double, double, void *),
+                            int N1, int N2,
+                            int N, int *Neval, double *I, double *err,
+                            char name[])
+{
+    double exact = F(a, b, args);
+
+    double err_approx[N];
+
+    int i;
+    for(i=0; i<N; i++)
+    {
+        int n = (int) (N1 * pow(((double)N2)/N1, ((double) i)/(N-1)));
+        if(i==0)
+            n = N1;
+        else if(i == N-1)
+            n = N2;
+
+        I[i] = gk1021_adapt(f, a, b, n, 0, 0, args, &(Neval[i]),
+                            &(err_approx[i]), NULL, 0, errf);
         err[i] = fabs((I[i] - exact)/exact);
         err_approx[i] = fabs(err_approx[i] / exact);
         printf("%05d: %.12lg %.6e\n", Neval[i], I[i], err[i]);
@@ -245,7 +342,7 @@ int main(int argc, char *argv[])
     double (*F)(double, double, void *);
     double a = 0.0;
     double b = 1.0;
-    double c = 0.0001;
+    double c = 0.001;
 
     double args[1] = {c};
 
@@ -254,19 +351,11 @@ int main(int argc, char *argv[])
 
     double exact = F(a, b, args);
 
-    int i;
-    for(i=1; i<=7; i++)
-    {
-        double I = gl(f, a, b, i, args);
-        printf("%d: %.12lf %.6le\n", i, I, (I-exact)/exact);
-    }
-    printf("   %.12lf\n", exact);
-
     int Neval;
     double err;
     struct Mesh3 m;
     double I = trap_adapt(f, a, b, 200, 1.0e-10, 1.0e-10, args,
-                          &Neval, &err, &m, 1);
+                          &Neval, &err, &m, 1, errf, NULL, NULL);
     double true_error = I - exact;
     printf("   %.12lf %.6le %.6le %d\n", I, err, true_error, Neval);
     printf("%lu %lu\n", m.N, m.totalSize);
@@ -279,8 +368,8 @@ int main(int argc, char *argv[])
     
     
     struct Mesh m2;
-    I = gl7_adapt(f, a, b, 200, 1.0e-10, 1.0e-10, args,
-                  &Neval, &err, &m2, 1);
+    I = gk49_adapt(f, a, b, 200, 1.0e-10, 1.0e-10, args,
+                  &Neval, &err, &m2, 1, errf);
     true_error = I - exact;
     printf("   %.12lf %.6le %.6le %d\n", I, err, true_error, Neval);
     printf("%lu %lu\n", m2.N, m2.totalSize);
@@ -299,9 +388,9 @@ int main(int argc, char *argv[])
     int ta_Neval[N];
     double ta_I[N];
     double ta_err[N];
-    int gl7a_Neval[N];
-    double gl7a_I[N];
-    double gl7a_err[N];
+    int gka_Neval[N];
+    double gka_I[N];
+    double gka_err[N];
 
     convergence_trap_fixed(f, args, a, b, F, 2, 4096,
                            N, tf_Neval, tf_I, tf_err, "trap_fixed");
@@ -313,8 +402,14 @@ int main(int argc, char *argv[])
                            N, ta_Neval, ta_I, ta_err, "simp_adapt");
     convergence_romb_adapt(f, args, a, b, F, 2, 4097,
                            N, ta_Neval, ta_I, ta_err, "romb_adapt");
-    convergence_gl7_adapt(f, args, a, b, F, 2, 4096,
-                          N, gl7a_Neval, gl7a_I, gl7a_err, "gl7_adapt");
+    convergence_cadre_adapt(f, args, a, b, F, 2, 4097,
+                           N, ta_Neval, ta_I, ta_err, "cadre_adapt");
+    convergence_gk49_adapt(f, args, a, b, F, 2, 4096,
+                          N, gka_Neval, gka_I, gka_err, "gk49_adapt");
+    convergence_gk715_adapt(f, args, a, b, F, 2, 4096,
+                          N, gka_Neval, gka_I, gka_err, "gk715_adapt");
+    convergence_gk1021_adapt(f, args, a, b, F, 2, 4096,
+                          N, gka_Neval, gka_I, gka_err, "gk1021_adapt");
 
     return 0;
 }
