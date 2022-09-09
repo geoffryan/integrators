@@ -1,6 +1,6 @@
 # Some Integration Routines In C #
 
-Just a variety of straight-forward numerica integration routines for real-valued functions on a finite domain.  Single-threaded.
+Just a variety of straight-forward numerical integration routines for real-valued functions on a finite domain.  Single-threaded.
 
 
 ## To include in a project
@@ -32,7 +32,7 @@ The arguments are:
 
 ## Romberg Routine
 
-A simple adaptive Romberg integrator. Exits after error tolerance met, maximum number of evalutions met, or 20 levels have been performed.  Each level internally produces an integal estimate `I` with error `eps`. Integration is terminated when `|eps| < atol + rtol * |I|`.
+A simple adaptive Romberg integrator. Exits after error tolerance met, maximum number of evaluations met, or 20 levels have been performed.  Each level internally produces an integral estimate `I` with error `eps`. Integration is terminated when `|eps| < atol + rtol * |I|`.
 
 ```c
 double romb(double (*f)(double, void *), double xa, double xb, int N,
